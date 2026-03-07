@@ -7,12 +7,20 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "*",
+        "intervention/image": "*",
         "laravel/framework": "^11.31",
-        "laravel/tinker": "^2.9"
+        "laravel/reverb": "*",
+        "laravel/sanctum": "*",
+        "laravel/scout": "*",
+        "laravel/tinker": "^2.9",
+        "maatwebsite/excel": "*",
+        "spatie/laravel-permission": "*",
+        "spatie/laravel-sluggable": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
-        "laravel/breeze": "*",
+        "laravel/breeze": "^2.3",
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
         "laravel/sail": "^1.26",
