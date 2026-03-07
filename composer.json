@@ -10,7 +10,7 @@
         "barryvdh/laravel-dompdf": "*",
         "intervention/image": "*",
         "laravel/framework": "^11.31",
-        "laravel/reverb": "*",
+        "laravel/reverb": "^1.8",
         "laravel/sanctum": "*",
         "laravel/scout": "*",
         "laravel/tinker": "^2.9",
