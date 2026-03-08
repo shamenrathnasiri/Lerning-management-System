@@ -36,7 +36,6 @@ class RegisteredUserController extends Controller
             'username' => ['required', 'string', 'max:50', 'unique:users,username', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'email'    => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role'     => ['required', 'in:student,instructor'],
             'avatar'   => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'terms'    => ['required', 'accepted'],
         ], [
@@ -60,32 +59,14 @@ class RegisteredUserController extends Controller
             'terms_accepted_at' => now(),
         ]);
 
-        // Assign selected role
-        $user->assignRole($validated['role']);
+        // Always assign student role (instructors are promoted by admins)
+        $user->assignRole('student');
 
         // Fire registered event (triggers email verification)
         event(new Registered($user));
 
-        // Log in the user
-        Auth::login($user);
-
-        // Redirect based on role
-        return redirect()->route($this->dashboardRoute($user));
-    }
-
-    /**
-     * Determine the dashboard route based on user role.
-     */
-    private function dashboardRoute(User $user): string
-    {
-        if ($user->isAdmin()) {
-            return 'admin.dashboard';
-        }
-
-        if ($user->isInstructor()) {
-            return 'instructor.dashboard';
-        }
-
-        return 'dashboard';
+        // Redirect to login page with success message (do NOT auto-login)
+        return redirect()->route('login')
+            ->with('status', 'Registration successful! Please log in to continue.');
     }
 }
