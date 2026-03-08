@@ -8,6 +8,8 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\Auth\TwoFactorAuthController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +35,20 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    // ── Social Authentication ────────────────────────
+    Route::get('auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+        ->name('social.redirect');
+
+    Route::get('auth/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->name('social.callback');
+
+    // ── Two-Factor Challenge (during login) ──────────
+    Route::get('two-factor/challenge', [TwoFactorAuthController::class, 'challenge'])
+        ->name('two-factor.challenge');
+
+    Route::post('two-factor/challenge', [TwoFactorAuthController::class, 'verify'])
+        ->name('two-factor.verify');
 });
 
 Route::middleware('auth')->group(function () {
@@ -56,4 +72,22 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // ── Two-Factor Setup & Management ────────────────
+    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+        Route::get('setup', [TwoFactorAuthController::class, 'setup'])
+            ->name('setup');
+
+        Route::post('enable', [TwoFactorAuthController::class, 'enable'])
+            ->name('enable');
+
+        Route::delete('disable', [TwoFactorAuthController::class, 'disable'])
+            ->name('disable');
+
+        Route::get('recovery-codes', [TwoFactorAuthController::class, 'recoveryCodes'])
+            ->name('recovery-codes');
+
+        Route::post('recovery-codes/regenerate', [TwoFactorAuthController::class, 'regenerateRecoveryCodes'])
+            ->name('recovery-codes.regenerate');
+    });
 });

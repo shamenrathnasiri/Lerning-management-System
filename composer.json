@@ -13,6 +13,7 @@
         "laravel/reverb": "^1.8",
         "laravel/sanctum": "*",
         "laravel/scout": "*",
+        "laravel/socialite": "^5.24",
         "laravel/tinker": "^2.9",
         "maatwebsite/excel": "*",
         "spatie/laravel-permission": "*",
