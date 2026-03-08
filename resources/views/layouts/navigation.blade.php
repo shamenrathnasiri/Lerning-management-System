@@ -15,6 +15,11 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    @if (Auth::user()?->isAtLeastInstructor())
+                        <x-nav-link :href="route('instructor.courses.index')" :active="request()->routeIs('instructor.courses.*')">
+                            {{ __('My Courses') }}
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -70,6 +75,11 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @if (Auth::user()?->isAtLeastInstructor())
+                <x-responsive-nav-link :href="route('instructor.courses.index')" :active="request()->routeIs('instructor.courses.*')">
+                    {{ __('My Courses') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

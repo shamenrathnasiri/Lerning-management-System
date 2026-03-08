@@ -62,4 +62,40 @@ Route::middleware(['auth', 'permission:manage tags'])->prefix('admin')->name('ta
     Route::post('/tags/bulk-delete', [TagController::class, 'bulkDestroy'])->name('bulk-destroy');
 });
 
+// ── Instructor Course Wizard ────────────────────
+Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructor.')->group(function () {
+    $ctrl = \App\Http\Controllers\Instructor\CourseWizardController::class;
+
+    // Course list
+    Route::get('/courses', [$ctrl, 'index'])->name('courses.index');
+
+    // Create new draft
+    Route::post('/courses/create', [$ctrl, 'create'])->name('courses.create');
+
+    // Wizard steps
+    Route::get('/courses/{course}/wizard', [$ctrl, 'wizard'])->name('courses.wizard');
+    Route::post('/courses/{course}/step1', [$ctrl, 'saveStep1'])->name('courses.save-step1');
+    Route::post('/courses/{course}/step2', [$ctrl, 'saveStep2'])->name('courses.save-step2');
+    Route::post('/courses/{course}/step3', [$ctrl, 'saveStep3'])->name('courses.save-step3');
+    Route::post('/courses/{course}/step4', [$ctrl, 'saveStep4'])->name('courses.save-step4');
+
+    // Curriculum AJAX (step 3)
+    Route::post('/courses/{course}/sections', [$ctrl, 'addSection'])->name('courses.sections.add');
+    Route::put('/courses/{course}/sections/{section}', [$ctrl, 'updateSection'])->name('courses.sections.update');
+    Route::delete('/courses/{course}/sections/{section}', [$ctrl, 'deleteSection'])->name('courses.sections.delete');
+    Route::post('/courses/{course}/sections/{section}/lessons', [$ctrl, 'addLesson'])->name('courses.lessons.add');
+    Route::post('/courses/{course}/sections/{section}/lessons/bulk', [$ctrl, 'bulkAddLessons'])->name('courses.lessons.bulk');
+    Route::put('/courses/{course}/lessons/{lesson}', [$ctrl, 'updateLesson'])->name('courses.lessons.update');
+    Route::delete('/courses/{course}/lessons/{lesson}', [$ctrl, 'deleteLesson'])->name('courses.lessons.delete');
+    Route::post('/courses/{course}/reorder', [$ctrl, 'reorder'])->name('courses.reorder');
+
+    // Auto-save, preview, duplicate, delete
+    Route::post('/courses/{course}/auto-save', [$ctrl, 'autoSave'])->name('courses.auto-save');
+    Route::get('/courses/{course}/preview', [$ctrl, 'preview'])->name('courses.preview');
+    Route::get('/courses/{course}/versions', [$ctrl, 'versionHistory'])->name('courses.versions');
+    Route::post('/courses/{course}/versions/{version}/restore', [$ctrl, 'restoreVersion'])->name('courses.versions.restore');
+    Route::post('/courses/{course}/duplicate', [$ctrl, 'duplicate'])->name('courses.duplicate');
+    Route::delete('/courses/{course}', [$ctrl, 'destroy'])->name('courses.destroy');
+});
+
 require __DIR__.'/auth.php';

@@ -21,6 +21,7 @@ class Course extends Model
         'description',
         'requirements',
         'what_you_will_learn',
+        'target_audience',
         'thumbnail',
         'intro_video',
         'level',
@@ -32,6 +33,12 @@ class Course extends Model
         'is_featured',
         'is_free',
         'published_at',
+        'scheduled_publish_at',
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'certificate_template',
+        'wizard_step',
     ];
 
     protected function casts(): array
@@ -39,12 +46,15 @@ class Course extends Model
         return [
             'requirements' => 'array',
             'what_you_will_learn' => 'array',
+            'target_audience' => 'array',
             'price' => 'decimal:2',
             'discount_price' => 'decimal:2',
             'duration_hours' => 'integer',
             'is_featured' => 'boolean',
             'is_free' => 'boolean',
             'published_at' => 'datetime',
+            'scheduled_publish_at' => 'datetime',
+            'wizard_step' => 'integer',
         ];
     }
 
@@ -166,6 +176,14 @@ class Course extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Snapshot history for this course.
+     */
+    public function versions()
+    {
+        return $this->hasMany(CourseVersion::class)->orderByDesc('created_at');
     }
 
     /**
