@@ -96,6 +96,33 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
     Route::post('/courses/{course}/versions/{version}/restore', [$ctrl, 'restoreVersion'])->name('courses.versions.restore');
     Route::post('/courses/{course}/duplicate', [$ctrl, 'duplicate'])->name('courses.duplicate');
     Route::delete('/courses/{course}', [$ctrl, 'destroy'])->name('courses.destroy');
+
+    // ── Dedicated Lesson Editor ──────────────────────────────────────────────
+    $lc = \App\Http\Controllers\Instructor\LessonController::class;
+    Route::get('/courses/{course}/sections/{section}/lessons/create', [$lc, 'create'])->name('lessons.create');
+    Route::post('/courses/{course}/sections/{section}/lessons/store', [$lc, 'store'])->name('lessons.store');
+    Route::get('/lessons/{lesson}/edit',         [$lc, 'edit'])->name('lessons.edit');
+    Route::patch('/lessons/{lesson}',            [$lc, 'update'])->name('lessons.update-content');
+    Route::delete('/lessons/{lesson}/remove',    [$lc, 'destroy'])->name('lessons.destroy');
+    Route::post('/lessons/{lesson}/duplicate',   [$lc, 'duplicate'])->name('lessons.duplicate');
+    Route::get('/lessons/{lesson}/video-status', [$lc, 'videoStatus'])->name('lessons.video-status');
+});
+
+// ── Student Lesson Viewing ──────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('courses')->name('student.')->group(function () {
+    $lc = \App\Http\Controllers\Student\LessonController::class;
+    $nc = \App\Http\Controllers\Student\LessonNoteController::class;
+
+    Route::get('/{course}/learn/{lesson}',           [$lc, 'show'])->name('lessons.show');
+    Route::post('/{course}/learn/{lesson}/complete',  [$lc, 'complete'])->name('lessons.complete');
+    Route::patch('/{course}/learn/{lesson}/progress', [$lc, 'trackProgress'])->name('lessons.progress');
+    Route::get('/{course}/learn/{lesson}/stream',     [$lc, 'stream'])->name('lessons.stream');
+
+    // Notes CRUD (all return JSON)
+    Route::get('/{course}/learn/{lesson}/notes',             [$nc, 'index'])->name('lessons.notes.index');
+    Route::post('/{course}/learn/{lesson}/notes',            [$nc, 'store'])->name('lessons.notes.store');
+    Route::put('/{course}/learn/{lesson}/notes/{note}',      [$nc, 'update'])->name('lessons.notes.update');
+    Route::delete('/{course}/learn/{lesson}/notes/{note}',   [$nc, 'destroy'])->name('lessons.notes.destroy');
 });
 
 require __DIR__.'/auth.php';

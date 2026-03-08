@@ -26,16 +26,30 @@ class Lesson extends Model
         'is_free_preview',
         'is_published',
         'resources',
+        // extended fields
+        'file_path',
+        'thumbnail_path',
+        'video_quality_urls',
+        'video_watermark',
+        's3_key',
+        'processing_status',
+        'external_url',
+        'slides_data',
+        'is_downloadable',
     ];
 
     protected function casts(): array
     {
         return [
-            'duration_minutes' => 'integer',
-            'sort_order' => 'integer',
-            'is_free_preview' => 'boolean',
-            'is_published' => 'boolean',
-            'resources' => 'array',
+            'duration_minutes'  => 'integer',
+            'sort_order'        => 'integer',
+            'is_free_preview'   => 'boolean',
+            'is_published'      => 'boolean',
+            'resources'         => 'array',
+            'video_quality_urls'=> 'array',
+            'video_watermark'   => 'boolean',
+            'slides_data'       => 'array',
+            'is_downloadable'   => 'boolean',
         ];
     }
 
@@ -107,6 +121,22 @@ class Lesson extends Model
     public function discussions()
     {
         return $this->hasMany(Discussion::class);
+    }
+
+    /**
+     * Student notes/annotations for this lesson.
+     */
+    public function notes()
+    {
+        return $this->hasMany(LessonNote::class);
+    }
+
+    /**
+     * Latest video processing job.
+     */
+    public function videoProcessingJob()
+    {
+        return $this->hasOne(VideoProcessingJob::class)->latestOfMany();
     }
 
     // ──────────────────────────────────────────────
@@ -196,6 +226,58 @@ class Lesson extends Model
     public function getResourcesCountAttribute(): int
     {
         return is_array($this->resources) ? count($this->resources) : 0;
+    }
+
+    /**
+     * Human-readable label for the lesson type.
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'video'        => 'Video',
+            'text'         => 'Article',
+            'pdf'          => 'PDF',
+            'quiz'         => 'Quiz',
+            'assignment'   => 'Assignment',
+            'presentation' => 'Presentation',
+            'audio'        => 'Audio',
+            'external'     => 'External Link',
+            default        => ucfirst($this->type),
+        };
+    }
+
+    /**
+     * Heroicon name suitable for the lesson type (for blade @svg or img).
+     */
+    public function getTypeIconAttribute(): string
+    {
+        return match ($this->type) {
+            'video'        => 'play-circle',
+            'text'         => 'document-text',
+            'pdf'          => 'document',
+            'quiz'         => 'question-mark-circle',
+            'assignment'   => 'pencil-square',
+            'presentation' => 'presentation-chart-bar',
+            'audio'        => 'musical-note',
+            'external'     => 'arrow-top-right-on-square',
+            default        => 'academic-cap',
+        };
+    }
+
+    /**
+     * Whether this lesson has a locally hosted file.
+     */
+    public function getHasFileAttribute(): bool
+    {
+        return ! empty($this->file_path);
+    }
+
+    /**
+     * Whether the video is being processed.
+     */
+    public function getIsProcessingAttribute(): bool
+    {
+        return in_array($this->processing_status, ['pending', 'processing']);
     }
 
     // ──────────────────────────────────────────────

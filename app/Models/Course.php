@@ -343,7 +343,7 @@ class Course extends Model
             return 'Free';
         }
 
-        return '$' . number_format($this->price, 2);
+        return '$' . number_format((float) $this->price, 2);
     }
 
     /**
@@ -355,7 +355,7 @@ class Course extends Model
             return null;
         }
 
-        return '$' . number_format($this->discount_price, 2);
+        return '$' . number_format((float) $this->discount_price, 2);
     }
 
     /**
@@ -363,7 +363,7 @@ class Course extends Model
      */
     public function getEffectivePriceAttribute(): float
     {
-        return $this->discount_price ?? $this->price;
+        return (float) ($this->discount_price ?? $this->price ?? 0);
     }
 
     /**
