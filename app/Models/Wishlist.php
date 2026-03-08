@@ -15,6 +15,7 @@ class Wishlist extends Model
         'course_id',
     ];
 
+    // Relationships
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -23,5 +24,22 @@ class Wishlist extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    // Scopes
+    public function scopeForUser($query, int $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    public function scopeRecent($query)
+    {
+        return $query->orderByDesc('created_at');
+    }
+
+    // Accessors
+    public function getAddedAgoAttribute(): string
+    {
+        return $this->created_at->diffForHumans();
     }
 }
