@@ -14,7 +14,17 @@ class Question extends Model
         'quiz_id',
         'type',
         'question_text',
+        'question_content',
         'explanation',
+        'answer_payload',
+        'media_embed',
+        'allow_partial_credit',
+        'code_language',
+        'code_starter',
+        'code_solution',
+        'code_test_cases',
+        'execution_timeout_seconds',
+        'metadata',
         'points',
         'sort_order',
     ];
@@ -24,6 +34,12 @@ class Question extends Model
         return [
             'points' => 'integer',
             'sort_order' => 'integer',
+            'answer_payload' => 'array',
+            'media_embed' => 'array',
+            'allow_partial_credit' => 'boolean',
+            'code_test_cases' => 'array',
+            'execution_timeout_seconds' => 'integer',
+            'metadata' => 'array',
         ];
     }
 
@@ -124,7 +140,12 @@ class Question extends Model
      */
     public function getRequiresManualGradingAttribute(): bool
     {
-        return in_array($this->type, ['short_answer', 'essay']);
+        return in_array($this->type, ['short_answer', 'essay', 'code_challenge'], true);
+    }
+
+    public function getIsCodeChallengeAttribute(): bool
+    {
+        return $this->type === 'code_challenge';
     }
 
     /**

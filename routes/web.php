@@ -100,6 +100,7 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
     // ── Dedicated Lesson Editor ──────────────────────────────────────────────
     $lc = \App\Http\Controllers\Instructor\LessonController::class;
     $cc = \App\Http\Controllers\Instructor\CurriculumController::class;
+    $qc = \App\Http\Controllers\Instructor\QuizController::class;
     Route::get('/courses/{course}/sections/{section}/lessons/create', [$lc, 'create'])->name('lessons.create');
     Route::post('/courses/{course}/sections/{section}/lessons/store', [$lc, 'store'])->name('lessons.store');
     Route::get('/lessons/{lesson}/edit',         [$lc, 'edit'])->name('lessons.edit');
@@ -118,6 +119,16 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
     Route::post('/courses/{course}/curriculum/autosave', [$cc, 'autoSave'])->name('curriculum.autosave');
     Route::get('/courses/{course}/curriculum/export', [$cc, 'export'])->name('curriculum.export');
     Route::post('/courses/{course}/curriculum/import', [$cc, 'import'])->name('curriculum.import');
+
+    // ── Quiz Builder ─────────────────────────────────────────────────────────
+    Route::get('/quizzes/create', [$qc, 'create'])->name('quizzes.create');
+    Route::post('/quizzes', [$qc, 'store'])->name('quizzes.store');
+    Route::get('/quizzes/{quiz}/edit', [$qc, 'edit'])->name('quizzes.edit');
+    Route::put('/quizzes/{quiz}', [$qc, 'update'])->name('quizzes.update');
+    Route::delete('/quizzes/{quiz}', [$qc, 'destroy'])->name('quizzes.destroy');
+    Route::post('/quizzes/{quiz}/duplicate', [$qc, 'duplicate'])->name('quizzes.duplicate');
+    Route::post('/quizzes/{quiz}/publish', [$qc, 'publish'])->name('quizzes.publish');
+    Route::post('/quizzes/{quiz}/unpublish', [$qc, 'unpublish'])->name('quizzes.unpublish');
 });
 
 // ── Student Lesson Viewing ──────────────────────────────────────────────────

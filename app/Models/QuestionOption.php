@@ -12,6 +12,9 @@ class QuestionOption extends Model
     protected $fillable = [
         'question_id',
         'option_text',
+        'content',
+        'match_key',
+        'option_payload',
         'is_correct',
         'sort_order',
     ];
@@ -21,6 +24,7 @@ class QuestionOption extends Model
         return [
             'is_correct' => 'boolean',
             'sort_order' => 'integer',
+            'option_payload' => 'array',
         ];
     }
 

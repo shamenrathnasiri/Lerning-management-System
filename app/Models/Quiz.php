@@ -18,23 +18,42 @@ class Quiz extends Model
         'title',
         'slug',
         'description',
+        'quiz_type',
+        'time_limit_mode',
         'time_limit_minutes',
+        'per_question_time_seconds',
         'max_attempts',
         'pass_percentage',
         'shuffle_questions',
+        'randomize_options',
+        'answer_visibility',
+        'show_answers_after_attempts',
+        'navigation_mode',
+        'instructions',
+        'settings',
         'show_correct_answers',
         'is_published',
+        'published_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'quiz_type' => 'string',
+            'time_limit_mode' => 'string',
             'time_limit_minutes' => 'integer',
+            'per_question_time_seconds' => 'integer',
             'max_attempts' => 'integer',
             'pass_percentage' => 'decimal:2',
             'shuffle_questions' => 'boolean',
+            'randomize_options' => 'boolean',
+            'answer_visibility' => 'string',
+            'show_answers_after_attempts' => 'integer',
+            'navigation_mode' => 'string',
+            'settings' => 'array',
             'show_correct_answers' => 'boolean',
             'is_published' => 'boolean',
+            'published_at' => 'datetime',
         ];
     }
 

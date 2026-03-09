@@ -297,11 +297,48 @@
                             'import' => route('instructor.curriculum.import', $course),
                         ],
                     ];
+
+                    $quizzes = $course->quizzes()
+                        ->withCount('questions')
+                        ->orderByDesc('updated_at')
+                        ->get();
                 @endphp
 
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div id="curriculum-builder-root"></div>
                     <script id="curriculum-builder-config" type="application/json">@json($curriculumConfig)</script>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-900">Quiz Builder</h3>
+                            <p class="text-xs text-gray-500 mt-1">Create lesson quizzes, course exams, and practice tests with advanced question types.</p>
+                        </div>
+                        <a href="{{ route('instructor.quizzes.create', ['course_id' => $course->id]) }}" class="inline-flex items-center rounded-md border border-indigo-300 bg-indigo-50 px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-100">
+                            + New Quiz
+                        </a>
+                    </div>
+
+                    <div class="mt-4 space-y-2">
+                        @forelse ($quizzes as $quiz)
+                            <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-800">{{ $quiz->title }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ ucfirst(str_replace('_', ' ', $quiz->quiz_type ?? 'lesson_quiz')) }}
+                                        • {{ $quiz->questions_count }} question(s)
+                                        • {{ $quiz->is_published ? 'Published' : 'Draft' }}
+                                    </p>
+                                </div>
+                                <a href="{{ route('instructor.quizzes.edit', $quiz) }}" class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                                    Edit Quiz
+                                </a>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500">No quizzes created for this course yet.</p>
+                        @endforelse
+                    </div>
                 </div>
             @endif
 
