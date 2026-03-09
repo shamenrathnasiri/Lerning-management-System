@@ -99,6 +99,7 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
 
     // ── Dedicated Lesson Editor ──────────────────────────────────────────────
     $lc = \App\Http\Controllers\Instructor\LessonController::class;
+    $cc = \App\Http\Controllers\Instructor\CurriculumController::class;
     Route::get('/courses/{course}/sections/{section}/lessons/create', [$lc, 'create'])->name('lessons.create');
     Route::post('/courses/{course}/sections/{section}/lessons/store', [$lc, 'store'])->name('lessons.store');
     Route::get('/lessons/{lesson}/edit',         [$lc, 'edit'])->name('lessons.edit');
@@ -107,6 +108,16 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
     Route::post('/lessons/{lesson}/duplicate',   [$lc, 'duplicate'])->name('lessons.duplicate');
     Route::post('/courses/{course}/lessons/reorder', [$lc, 'reorder'])->name('lessons.reorder');
     Route::get('/lessons/{lesson}/video-status', [$lc, 'videoStatus'])->name('lessons.video-status');
+
+    // ── Interactive Curriculum Builder (AJAX) ───────────────────────────────
+    Route::post('/courses/{course}/curriculum/sections', [$cc, 'addSection'])->name('curriculum.sections.add');
+    Route::post('/courses/{course}/curriculum/sections/{section}/lessons', [$cc, 'addLessonToSection'])->name('curriculum.lessons.add');
+    Route::post('/courses/{course}/curriculum/reorder-sections', [$cc, 'reorderSections'])->name('curriculum.sections.reorder');
+    Route::post('/courses/{course}/curriculum/reorder-lessons', [$cc, 'reorderLessons'])->name('curriculum.lessons.reorder');
+    Route::delete('/courses/{course}/curriculum/sections/{section}', [$cc, 'deleteSection'])->name('curriculum.sections.delete');
+    Route::post('/courses/{course}/curriculum/autosave', [$cc, 'autoSave'])->name('curriculum.autosave');
+    Route::get('/courses/{course}/curriculum/export', [$cc, 'export'])->name('curriculum.export');
+    Route::post('/courses/{course}/curriculum/import', [$cc, 'import'])->name('curriculum.import');
 });
 
 // ── Student Lesson Viewing ──────────────────────────────────────────────────

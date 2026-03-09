@@ -268,139 +268,40 @@
                             'title' => $section->title,
                             'description' => $section->description,
                             'sort_order' => $section->sort_order,
+                            'collapsed' => false,
                             'lessons' => $section->lessons->map(function ($lesson) {
                                 return [
                                     'id' => $lesson->id,
                                     'slug' => $lesson->slug,
                                     'title' => $lesson->title,
                                     'type' => $lesson->type,
-                                    'content' => $lesson->content,
-                                    'video_url' => $lesson->video_url,
-                                    'video_provider' => $lesson->video_provider,
                                     'duration_minutes' => $lesson->duration_minutes,
-                                    'sort_order' => $lesson->sort_order,
                                     'is_free_preview' => (bool) $lesson->is_free_preview,
                                 ];
                             })->values()->all(),
                         ];
                     })->values()->all();
+
+                    $curriculumConfig = [
+                        'sections' => $curriculumData,
+                        'previewUrl' => route('instructor.courses.preview', $course),
+                        'continueUrl' => route('instructor.courses.save-step3', $course),
+                        'endpoints' => [
+                            'addSection' => route('instructor.curriculum.sections.add', $course),
+                            'addLesson' => url('/instructor/courses/' . $course->slug . '/curriculum/sections/__SECTION__/lessons'),
+                            'reorderSections' => route('instructor.curriculum.sections.reorder', $course),
+                            'reorderLessons' => route('instructor.curriculum.lessons.reorder', $course),
+                            'deleteSection' => url('/instructor/courses/' . $course->slug . '/curriculum/sections/__SECTION__'),
+                            'autosave' => route('instructor.curriculum.autosave', $course),
+                            'export' => route('instructor.curriculum.export', $course),
+                            'import' => route('instructor.curriculum.import', $course),
+                        ],
+                    ];
                 @endphp
 
-                <div class="grid lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Curriculum Builder</h3>
-                                <p class="text-xs text-gray-500">Drag and drop sections/lessons to reorder.</p>
-                            </div>
-                            <button id="add-section-btn" type="button" class="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700">+ Add Section</button>
-                        </div>
-
-                        <div id="curriculum-board" class="space-y-3"></div>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                            <h4 class="text-sm font-semibold text-gray-900">Bulk Lesson Creation</h4>
-                            <p class="text-xs text-gray-500 mt-1">Create multiple lessons in one action, one title per line.</p>
-                            <div class="mt-3 space-y-3">
-                                <select id="bulk-section" class="w-full rounded-md border-gray-300 text-sm"></select>
-                                <select id="bulk-type" class="w-full rounded-md border-gray-300 text-sm">
-                                    <option value="video">Video</option>
-                                    <option value="text">Text</option>
-                                    <option value="quiz">Quiz</option>
-                                    <option value="assignment">Assignment</option>
-                                </select>
-                                <textarea id="bulk-titles" rows="6" class="w-full rounded-md border-gray-300 text-sm" placeholder="Lesson 1&#10;Lesson 2&#10;Lesson 3"></textarea>
-                                <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                    <input id="bulk-preview" type="checkbox"> Mark all as free preview
-                                </label>
-                                <button id="bulk-create-btn" type="button" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Create Bulk Lessons</button>
-                            </div>
-                        </div>
-
-                        <form method="POST" action="{{ route('instructor.courses.save-step3', $course) }}" class="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-                            @csrf
-                            <h4 class="text-sm font-semibold text-gray-900">Continue</h4>
-                            <p class="text-xs text-gray-500 mt-1">When curriculum is ready, continue to course settings.</p>
-                            <div class="mt-4 flex items-center justify-between">
-                                <a href="{{ route('instructor.courses.wizard', [$course, 'step' => 2]) }}" class="text-sm text-gray-600 hover:text-gray-900">Back</a>
-                                <x-primary-button>Save and continue</x-primary-button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div id="lesson-modal" class="hidden fixed inset-0 z-40 bg-black/50 items-center justify-center p-4">
-                    <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 space-y-4">
-                        <div class="flex items-center justify-between">
-                            <h4 id="lesson-modal-title" class="text-lg font-semibold text-gray-900">Add Lesson</h4>
-                            <button type="button" id="lesson-modal-close" class="text-gray-400 hover:text-gray-700">X</button>
-                        </div>
-
-                        <form id="lesson-form" class="space-y-3">
-                            <input type="hidden" id="lesson-section-id">
-                            <input type="hidden" id="lesson-slug">
-
-                            <div>
-                                <label class="block text-sm text-gray-700">Title</label>
-                                <input id="lesson-title" type="text" required class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                            </div>
-
-                            <div class="grid md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-sm text-gray-700">Type</label>
-                                    <select id="lesson-type" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                                        <option value="video">Video</option>
-                                        <option value="text">Text</option>
-                                        <option value="quiz">Quiz</option>
-                                        <option value="assignment">Assignment</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm text-gray-700">Duration (minutes)</label>
-                                    <input id="lesson-duration" type="number" min="0" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                                </div>
-                            </div>
-
-                            <div class="grid md:grid-cols-2 gap-3">
-                                <div>
-                                    <label class="block text-sm text-gray-700">Video provider</label>
-                                    <select id="lesson-video-provider" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                                        <option value="">Select provider</option>
-                                        <option value="youtube">YouTube</option>
-                                        <option value="vimeo">Vimeo</option>
-                                        <option value="upload">Upload</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm text-gray-700">Video URL/embed</label>
-                                    <input id="lesson-video-url" type="text" class="mt-1 w-full rounded-md border-gray-300 text-sm" placeholder="https://...">
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm text-gray-700">Video file upload</label>
-                                <input id="lesson-video-file" type="file" accept="video/*" class="mt-1 block w-full text-sm text-gray-700">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm text-gray-700">Text content</label>
-                                <textarea id="lesson-content" rows="4" class="mt-1 w-full rounded-md border-gray-300 text-sm"></textarea>
-                            </div>
-
-                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                <input id="lesson-preview" type="checkbox">
-                                Free preview lesson
-                            </label>
-
-                            <div class="flex items-center justify-end gap-2 pt-2">
-                                <button id="lesson-delete-btn" type="button" class="hidden rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 hover:bg-red-100">Delete</button>
-                                <button type="button" id="lesson-cancel-btn" class="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cancel</button>
-                                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">Save Lesson</button>
-                            </div>
-                        </form>
-                    </div>
+                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div id="curriculum-builder-root"></div>
+                    <script id="curriculum-builder-config" type="application/json">@json($curriculumConfig)</script>
                 </div>
             @endif
 
