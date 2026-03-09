@@ -36,8 +36,11 @@
                 @endif
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('instructor.lessons.duplicate', $lesson) }}"
-                   class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 text-gray-600">Duplicate</a>
+                <form action="{{ route('instructor.lessons.duplicate', $lesson) }}" method="POST">
+                    @csrf
+                    <button type="submit"
+                            class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 text-gray-600">Duplicate</button>
+                </form>
                 <form action="{{ route('instructor.lessons.destroy', $lesson) }}" method="POST"
                       onsubmit="return confirm('Delete this lesson?')">
                     @csrf @method('DELETE')
@@ -79,7 +82,7 @@
         @endif
 
         {{-- ── Edit Form ──────────────────────────────────────────────────── --}}
-        <form action="{{ route('instructor.lessons.update', $lesson) }}"
+                <form action="{{ route('instructor.lessons.update', $lesson) }}"
               method="POST"
               enctype="multipart/form-data"
               class="space-y-6">

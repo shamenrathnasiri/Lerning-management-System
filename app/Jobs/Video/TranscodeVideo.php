@@ -83,6 +83,8 @@ class TranscodeVideo implements ShouldQueue
                 @unlink($localOut);
             }
 
+            $qualityUrls['original'] = $this->s3Key;
+
             $record?->markAsCompleted($qualityUrls);
             $this->lesson->update([
                 'video_quality_urls' => $qualityUrls,

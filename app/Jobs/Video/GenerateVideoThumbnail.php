@@ -57,6 +57,10 @@ class GenerateVideoThumbnail implements ShouldQueue
 
                     $thumbUrl = $s3->url($thumbKey);
                 $this->lesson->update(['thumbnail_path' => $thumbUrl]);
+
+                    $thumbnails = is_array($record?->thumbnails) ? $record->thumbnails : [];
+                    $thumbnails['default'] = $thumbKey;
+                    $record?->update(['thumbnails' => $thumbnails]);
             }
         } catch (\Throwable $e) {
             Log::error("[GenerateVideoThumbnail] lesson {$this->lesson->id}: {$e->getMessage()}");

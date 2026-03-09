@@ -548,23 +548,30 @@
         };
     }
 
+    @php
+        $qualityStreamUrls = [];
+        foreach (array_keys($lesson->video_quality_urls ?? []) as $quality) {
+            $qualityStreamUrls[$quality] = route('student.lessons.stream', [$course->slug, $lesson->slug, 'quality' => $quality]);
+        }
+    @endphp
+
     function videoPlayer() {
         return {
             currentSrc: '',
             activeQuality: '',
+            qualityUrls: @json($qualityStreamUrls),
 
             init() {
                 // Default to best quality available
                 const qualities = @json(array_keys($lesson->video_quality_urls ?? []));
                 if (qualities.length) {
-                    this.setQuality(qualities[qualities.length - 1], null);
+                    this.setQuality(qualities[qualities.length - 1], this.qualityUrls[qualities[qualities.length - 1]]);
                 }
             },
 
             setQuality(quality, url) {
                 this.activeQuality = quality;
-                // url is a stream route; fall back to s3 signed link via page
-                this.currentSrc = url ?? '';
+                this.currentSrc = url ?? this.qualityUrls[quality] ?? '';
             },
 
             onTimeUpdate(e) {
@@ -574,8 +581,22 @@
             },
 
             onEnded() {
-                // Auto-mark complete when video finishes
-                document.getElementById('completeForm')?.submit();
+                this.markCompleted();
+            },
+
+            markCompleted() {
+                fetch('{{ route('student.lessons.complete', [$course->slug, $lesson->slug]) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ is_completed: true }),
+                }).catch(() => {
+                    // Fallback to standard form submit if fetch fails.
+                    document.getElementById('completeForm')?.submit();
+                });
             },
 
             syncProgress(seconds) {
@@ -614,7 +635,17 @@
             },
 
             onEnded() {
-                document.getElementById('completeForm')?.submit();
+                fetch('{{ route('student.lessons.complete', [$course->slug, $lesson->slug]) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ is_completed: true }),
+                }).catch(() => {
+                    document.getElementById('completeForm')?.submit();
+                });
             },
 
             formatTime(s) {

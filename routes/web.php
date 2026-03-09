@@ -102,9 +102,10 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
     Route::get('/courses/{course}/sections/{section}/lessons/create', [$lc, 'create'])->name('lessons.create');
     Route::post('/courses/{course}/sections/{section}/lessons/store', [$lc, 'store'])->name('lessons.store');
     Route::get('/lessons/{lesson}/edit',         [$lc, 'edit'])->name('lessons.edit');
-    Route::patch('/lessons/{lesson}',            [$lc, 'update'])->name('lessons.update-content');
+    Route::patch('/lessons/{lesson}',            [$lc, 'update'])->name('lessons.update');
     Route::delete('/lessons/{lesson}/remove',    [$lc, 'destroy'])->name('lessons.destroy');
     Route::post('/lessons/{lesson}/duplicate',   [$lc, 'duplicate'])->name('lessons.duplicate');
+    Route::post('/courses/{course}/lessons/reorder', [$lc, 'reorder'])->name('lessons.reorder');
     Route::get('/lessons/{lesson}/video-status', [$lc, 'videoStatus'])->name('lessons.video-status');
 });
 
@@ -115,7 +116,7 @@ Route::middleware(['auth', 'verified'])->prefix('courses')->name('student.')->gr
 
     Route::get('/{course}/learn/{lesson}',           [$lc, 'show'])->name('lessons.show');
     Route::post('/{course}/learn/{lesson}/complete',  [$lc, 'complete'])->name('lessons.complete');
-    Route::patch('/{course}/learn/{lesson}/progress', [$lc, 'trackProgress'])->name('lessons.progress');
+    Route::match(['patch', 'post'], '/{course}/learn/{lesson}/progress', [$lc, 'trackProgress'])->name('lessons.progress');
     Route::get('/{course}/learn/{lesson}/stream',     [$lc, 'stream'])->name('lessons.stream');
 
     // Notes CRUD (all return JSON)

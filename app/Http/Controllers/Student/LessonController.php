@@ -87,7 +87,14 @@ class LessonController extends Controller
             ['course_id' => $course->id, 'is_completed' => false, 'watch_time_seconds' => 0]
         );
 
-        $nowComplete = ! $progress->is_completed;
+        $requestedState = $request->input('is_completed');
+        $nowComplete = is_null($requestedState)
+            ? ! $progress->is_completed
+            : filter_var($requestedState, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        if (is_null($nowComplete)) {
+            $nowComplete = ! $progress->is_completed;
+        }
 
         $progress->update([
             'is_completed' => $nowComplete,
@@ -97,6 +104,7 @@ class LessonController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'is_completed'        => $nowComplete,
+                'watch_time_seconds'  => $progress->watch_time_seconds,
                 'progress_percentage' => $enrollment->fresh()->progress_percentage,
             ]);
         }
@@ -115,8 +123,19 @@ class LessonController extends Controller
         abort_unless($lesson->course_id === $course->id, 404);
 
         $validated = $request->validate([
-            'watch_time_seconds' => ['required', 'integer', 'min:0', 'max:864000'],
+            'watch_time_seconds' => ['nullable', 'integer', 'min:0', 'max:864000'],
+            'is_completed'       => ['nullable', 'boolean'],
         ]);
+
+        if (! array_key_exists('watch_time_seconds', $validated) && ! array_key_exists('is_completed', $validated)) {
+            return response()->json([
+                'message' => 'Provide watch_time_seconds or is_completed.',
+            ], 422);
+        }
+
+        $enrollment = Enrollment::where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->first();
 
         $progress = LessonProgress::firstOrCreate(
             ['user_id' => Auth::id(), 'lesson_id' => $lesson->id],
@@ -124,12 +143,29 @@ class LessonController extends Controller
         );
 
         // Only advance — never decrease (prevents rewinds resetting progress)
-        if ($validated['watch_time_seconds'] > $progress->watch_time_seconds) {
+        if (isset($validated['watch_time_seconds']) && $validated['watch_time_seconds'] > $progress->watch_time_seconds) {
             $progress->update(['watch_time_seconds' => $validated['watch_time_seconds']]);
         }
 
+        if (array_key_exists('is_completed', $validated)) {
+            $isCompleted = (bool) $validated['is_completed'];
+            $progress->update([
+                'is_completed' => $isCompleted,
+                'completed_at' => $isCompleted ? now() : null,
+            ]);
+        } elseif ($lesson->duration_minutes > 0 && $progress->watch_time_seconds >= ($lesson->duration_minutes * 60)) {
+            $progress->update([
+                'is_completed' => true,
+                'completed_at' => $progress->completed_at ?? now(),
+            ]);
+        }
+
+        $progress->refresh();
+
         return response()->json([
             'watch_time_seconds' => $progress->watch_time_seconds,
+            'is_completed'       => $progress->is_completed,
+            'progress_percentage'=> $enrollment?->fresh()?->progress_percentage,
         ]);
     }
 

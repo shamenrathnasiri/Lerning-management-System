@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\VideoProcessingJob;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,32 +31,76 @@ class LessonController extends Controller
         'is_downloadable'  => ['nullable', 'boolean'],
     ];
 
-    private function typeRules(string $type): array
+    private function typeRules(string $type, ?Lesson $existing = null): array
     {
+        $requiresVideoUpload = ! $existing || (! $existing->s3_key && ! $existing->video_url);
+        $requiresPdfSource = ! $existing || (! $existing->file_path && ! $existing->external_url);
+        $requiresAudioSource = ! $existing || (! $existing->file_path && ! $existing->external_url);
+        $requiresPresentationSource = ! $existing || (! $existing->file_path && ! $existing->external_url);
+
         return match ($type) {
             'video' => [
                 'video_provider' => ['required', 'in:youtube,vimeo,upload'],
-                'video_url'      => ['required_if:video_provider,youtube', 'required_if:video_provider,vimeo',
-                                     'nullable', 'url', 'max:500'],
-                'video_file'     => ['required_if:video_provider,upload', 'nullable', 'file',
+                'video_url'      => [
+                    'nullable',
+                    'url',
+                    'max:500',
+                    Rule::requiredIf(fn () => in_array(request()->input('video_provider'), ['youtube', 'vimeo'], true)),
+                ],
+                'video_file'     => ['nullable', 'file',
                                      'mimetypes:video/mp4,video/webm,video/x-matroska,video/quicktime',
-                                     'max:2048000'],
+                                     'max:2048000',
+                                     Rule::requiredIf(fn () => request()->input('video_provider') === 'upload' && $requiresVideoUpload),
+                                    ],
                 'video_watermark'=> ['nullable', 'boolean'],
             ],
             'text' => [
                 'content' => ['required', 'string'],
             ],
             'pdf' => [
-                'pdf_file'    => ['nullable', 'file', 'mimes:pdf', 'max:51200'],
-                'external_url'=> ['nullable', 'url', 'max:1000'],
+                'pdf_file'    => [
+                    'nullable',
+                    'file',
+                    'mimes:pdf',
+                    'max:51200',
+                    Rule::requiredIf(fn () => $requiresPdfSource && ! request()->filled('external_url')),
+                ],
+                'external_url'=> [
+                    'nullable',
+                    'url',
+                    'max:1000',
+                    Rule::requiredIf(fn () => $requiresPdfSource && ! request()->hasFile('pdf_file')),
+                ],
             ],
             'audio' => [
-                'audio_file'  => ['nullable', 'file', 'mimes:mp3,aac,ogg,wav,m4a', 'max:204800'],
-                'external_url'=> ['nullable', 'url', 'max:1000'],
+                'audio_file'  => [
+                    'nullable',
+                    'file',
+                    'mimes:mp3,aac,ogg,wav,m4a',
+                    'max:204800',
+                    Rule::requiredIf(fn () => $requiresAudioSource && ! request()->filled('external_url')),
+                ],
+                'external_url'=> [
+                    'nullable',
+                    'url',
+                    'max:1000',
+                    Rule::requiredIf(fn () => $requiresAudioSource && ! request()->hasFile('audio_file')),
+                ],
             ],
             'presentation' => [
-                'presentation_file'=> ['nullable', 'file', 'mimes:pdf,pptx,ppt', 'max:102400'],
-                'external_url'     => ['nullable', 'url', 'max:1000'],
+                'presentation_file'=> [
+                    'nullable',
+                    'file',
+                    'mimes:pdf,pptx,ppt',
+                    'max:102400',
+                    Rule::requiredIf(fn () => $requiresPresentationSource && ! request()->filled('external_url')),
+                ],
+                'external_url'     => [
+                    'nullable',
+                    'url',
+                    'max:1000',
+                    Rule::requiredIf(fn () => $requiresPresentationSource && ! request()->hasFile('presentation_file')),
+                ],
                 'slides_data'      => ['nullable', 'json'],
             ],
             'external' => [
@@ -135,7 +180,7 @@ class LessonController extends Controller
         $this->authorizeInstructor($lesson->course);
 
         $type  = $lesson->type; // type is immutable after creation
-        $rules = array_merge($this->commonRules, $this->typeRules($type));
+        $rules = array_merge($this->commonRules, $this->typeRules($type, $lesson));
 
         $validated = $request->validate($rules);
         $data      = $this->buildLessonData($request, $validated, $type, $lesson);
@@ -205,6 +250,39 @@ class LessonController extends Controller
         return redirect()
             ->route('instructor.lessons.edit', $newLesson)
             ->with('success', 'Lesson duplicated.');
+    }
+
+    // ── Reorder (AJAX drag-drop) ────────────────────────────────────────────
+
+    public function reorder(Request $request, Course $course): JsonResponse
+    {
+        $this->authorizeInstructor($course);
+
+        $validated = $request->validate([
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.id' => [
+                'required',
+                Rule::exists('lessons', 'id')->where(fn ($q) => $q->where('course_id', $course->id)),
+            ],
+            'items.*.section_id' => [
+                'required',
+                Rule::exists('sections', 'id')->where(fn ($q) => $q->where('course_id', $course->id)),
+            ],
+            'items.*.sort_order' => ['required', 'integer', 'min:0'],
+        ]);
+
+        DB::transaction(function () use ($validated, $course) {
+            foreach ($validated['items'] as $item) {
+                Lesson::where('course_id', $course->id)
+                    ->where('id', $item['id'])
+                    ->update([
+                        'section_id' => $item['section_id'],
+                        'sort_order' => $item['sort_order'],
+                    ]);
+            }
+        });
+
+        return response()->json(['success' => true]);
     }
 
     // ── Video Processing Status (JSON polling) ────────────────────────────────

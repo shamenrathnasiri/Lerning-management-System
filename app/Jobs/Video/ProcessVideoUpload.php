@@ -49,8 +49,12 @@ class ProcessVideoUpload implements ShouldQueue
             $stream = Storage::disk('local')->readStream($this->tempPath);
 
             Storage::disk('s3')->writeStream($s3Key, $stream, ['visibility' => 'private']);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
 
-            $record->update(['s3_key' => $s3Key, 'status' => ProcessingRecord::STATUS_QUEUED]);
+            $record->update(['s3_key' => $s3Key]);
+            $record->markAsQueued();
 
             $this->lesson->update([
                 's3_key'             => $s3Key,
