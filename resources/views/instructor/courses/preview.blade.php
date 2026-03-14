@@ -78,8 +78,9 @@
             <section class="grid md:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-lg font-semibold text-gray-900">Requirements</h3>
+                    @php $requirements = $course->requirements ?? []; @endphp
                     <ul class="mt-3 list-disc pl-5 space-y-1 text-sm text-gray-700">
-                        @forelse (($course->requirements ?? []) as $item)
+                        @forelse ($requirements as $item)
                             <li>{{ $item }}</li>
                         @empty
                             <li class="list-none text-gray-400">No requirements added yet.</li>
@@ -89,8 +90,9 @@
 
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-lg font-semibold text-gray-900">What Students Will Learn</h3>
+                    @php $objectives = $course->what_you_will_learn ?? []; @endphp
                     <ul class="mt-3 list-disc pl-5 space-y-1 text-sm text-gray-700">
-                        @forelse (($course->what_you_will_learn ?? []) as $item)
+                        @forelse ($objectives as $item)
                             <li>{{ $item }}</li>
                         @empty
                             <li class="list-none text-gray-400">No learning objectives added yet.</li>

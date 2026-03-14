@@ -129,6 +129,15 @@ Route::middleware(['auth', 'instructor'])->prefix('instructor')->name('instructo
     Route::post('/quizzes/{quiz}/duplicate', [$qc, 'duplicate'])->name('quizzes.duplicate');
     Route::post('/quizzes/{quiz}/publish', [$qc, 'publish'])->name('quizzes.publish');
     Route::post('/quizzes/{quiz}/unpublish', [$qc, 'unpublish'])->name('quizzes.unpublish');
+
+    // ── Quiz Analytics ───────────────────────────────────────────────────────
+    $qa = \App\Http\Controllers\Instructor\QuizAnalyticsController::class;
+    Route::get('/quizzes/{quiz}/analytics',          [$qa, 'index'])->name('quiz-analytics.index');
+    Route::get('/quizzes/{quiz}/analytics/chart',    [$qa, 'chartData'])->name('quiz-analytics.chart-data');
+    Route::get('/quizzes/{quiz}/analytics/student/{user}', [$qa, 'studentHistory'])->name('quiz-analytics.student-history');
+    Route::get('/quizzes/{quiz}/analytics/export/excel', [$qa, 'exportExcel'])->name('quiz-analytics.export-excel');
+    Route::get('/quizzes/{quiz}/analytics/export/csv',   [$qa, 'exportCsv'])->name('quiz-analytics.export-csv');
+    Route::get('/quizzes/{quiz}/analytics/export/pdf/{attempt}', [$qa, 'exportStudentPdf'])->name('quiz-analytics.export-pdf');
 });
 
 // ── Student Lesson Viewing ──────────────────────────────────────────────────
@@ -148,4 +157,21 @@ Route::middleware(['auth', 'verified'])->prefix('courses')->name('student.')->gr
     Route::delete('/{course}/learn/{lesson}/notes/{note}',   [$nc, 'destroy'])->name('lessons.notes.destroy');
 });
 
+// ── Student Quiz Taking ─────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified'])->prefix('quizzes')->name('student.')->group(function () {
+    $qc = \App\Http\Controllers\Student\QuizController::class;
+
+    Route::get('/{quiz}',          [$qc, 'show'])->name('quiz.show');
+    Route::get('/{quiz}/start',    [$qc, 'start'])->name('quiz.start');
+    Route::post('/{quiz}/submit',  [$qc, 'submit'])->name('api.quiz.submit');
+    Route::post('/{quiz}/attempts/{attempt}/auto-save', [$qc, 'autoSave'])->name('api.quiz.auto-save');
+    Route::get('/{quiz}/results/{attempt}', [$qc, 'results'])->name('quiz.results');
+});
+
+// ── Student Course Show (fallback named route) ──────────────────────────────
+Route::middleware(['auth', 'verified'])->get('/courses/{course}', function ($course) {
+    return redirect('/'); // Replace with actual course show page when available
+})->name('student.course.show');
+
 require __DIR__.'/auth.php';
+

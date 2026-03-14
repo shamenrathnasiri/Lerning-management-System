@@ -433,7 +433,8 @@
                         <p class="text-xs text-gray-500 mt-1">Snapshots are created on major wizard and curriculum actions.</p>
 
                         <div class="mt-4 space-y-2 max-h-[34rem] overflow-auto pr-1">
-                            @forelse (($versions ?? collect()) as $version)
+                            @php $versionList = $versions ?? collect(); @endphp
+                            @forelse ($versionList as $version)
                                 <div class="rounded-lg border border-gray-200 px-3 py-2">
                                     <p class="text-sm font-medium text-gray-800">{{ str_replace('-', ' ', ucfirst($version->action)) }}</p>
                                     <p class="text-xs text-gray-500 mt-1">
