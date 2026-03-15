@@ -113,18 +113,54 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ─── Enrollments ─────────────────────────────────────────────
 
+    // Core enrollment endpoints
     Route::get('/enrollments', [EnrollmentController::class, 'index']);
-    Route::post('/enrollments', [EnrollmentController::class, 'store']);
+    Route::post('/enrollments', [EnrollmentController::class, 'enroll']);
     Route::get('/enrollments/{enrollment}', [EnrollmentController::class, 'show']);
-    Route::put('/enrollments/{enrollment}', [EnrollmentController::class, 'update']);
     Route::delete('/enrollments/{enrollment}', [EnrollmentController::class, 'destroy']);
     Route::get('/my-enrollments', [EnrollmentController::class, 'myEnrollments']);
+
+    // Enrollment actions
+    Route::post('/enrollments/{enrollment}/confirm-payment', [EnrollmentController::class, 'confirmPayment']);
+    Route::post('/enrollments/{enrollment}/cancel', [EnrollmentController::class, 'cancelEnrollment']);
+    Route::post('/enrollments/{enrollment}/transfer', [EnrollmentController::class, 'transferEnrollment']);
+    Route::post('/enrollments/{enrollment}/extend', [EnrollmentController::class, 'extendEnrollment']);
     Route::put('/enrollments/{enrollment}/status', [EnrollmentController::class, 'updateStatus']);
 
-    // ─── Lesson Progress ─────────────────────────────────────────
+    // Waitlist management
+    Route::post('/enrollments/waitlist', [EnrollmentController::class, 'joinWaitlist']);
+    Route::delete('/enrollments/waitlist/{courseId}', [EnrollmentController::class, 'leaveWaitlist']);
+    Route::get('/enrollments/waitlist', [EnrollmentController::class, 'getWaitlist']);
 
+    // Group enrollments
+    Route::get('/enrollments/groups', [EnrollmentController::class, 'groups']);
+    Route::get('/enrollments/groups/{groupEnrollment}', [EnrollmentController::class, 'showGroup']);
+
+    // Course enrollment info & statistics
+    Route::get('/courses/{course}/enrollment-info', [EnrollmentController::class, 'courseEnrollmentInfo']);
+    Route::get('/enrollments/statistics', [EnrollmentController::class, 'statistics']);
+
+    // ─── Progress Tracking ──────────────────────────────────────
+
+    // Course-level progress
     Route::get('/courses/{course}/progress', [LessonProgressController::class, 'index']);
-    Route::post('/lesson-progress', [LessonProgressController::class, 'store']);
+    Route::get('/courses/{course}/progress/circular', [LessonProgressController::class, 'circularProgress']);
+    Route::get('/courses/{course}/progress/modules', [LessonProgressController::class, 'moduleCheckmarks']);
+    Route::get('/courses/{course}/progress/activity', [LessonProgressController::class, 'activityBreakdown']);
+    Route::get('/courses/{course}/progress/export', [LessonProgressController::class, 'exportForCertificate']);
+
+    // Resume learning
+    Route::get('/courses/{course}/resume', [LessonProgressController::class, 'resume']);
+    Route::get('/courses/{course}/next-lesson', [LessonProgressController::class, 'nextLesson']);
+
+    // Lesson-level progress tracking
+    Route::post('/progress/track', [LessonProgressController::class, 'track']);
+    Route::post('/progress/complete', [LessonProgressController::class, 'markComplete']);
+    Route::post('/progress/incomplete', [LessonProgressController::class, 'markIncomplete']);
+    Route::get('/progress/lesson/{lesson}', [LessonProgressController::class, 'lessonProgress']);
+
+    // Activity heatmap
+    Route::get('/progress/heatmap', [LessonProgressController::class, 'heatmap']);
 
     // ─── Quizzes ─────────────────────────────────────────────────
 

@@ -2,7 +2,12 @@
 
 namespace App\Providers;
 
+use App\Events\CourseCompleted;
+use App\Events\ProgressMilestoneReached;
+use App\Listeners\HandleCourseCompleted;
+use App\Listeners\HandleProgressMilestone;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->registerBladeDirectives();
         $this->registerSuperAdminGate();
+        $this->registerEventListeners();
     }
 
     /**
@@ -89,5 +95,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole('super-admin') ? true : null;
         });
+    }
+
+    /**
+     * Register event listeners for progress tracking.
+     */
+    private function registerEventListeners(): void
+    {
+        Event::listen(ProgressMilestoneReached::class, HandleProgressMilestone::class);
+        Event::listen(CourseCompleted::class, HandleCourseCompleted::class);
     }
 }
