@@ -53,6 +53,7 @@ Route::get('/users/{user}/courses', [UserController::class, 'courses']);
 
 // Certificate verification (public)
 Route::get('/certificates/verify/{certificateNumber}', [CertificateController::class, 'verify']);
+Route::get('/certificates/share/{shareToken}', [CertificateController::class, 'verifyByToken']);
 
 // Coupon validation (public)
 Route::post('/coupons/validate', [CouponController::class, 'validate_code']);
@@ -195,11 +196,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Certificates ────────────────────────────────────────────
 
     Route::get('/certificates', [CertificateController::class, 'index']);
-    Route::post('/certificates', [CertificateController::class, 'store']);
+    Route::get('/my-certificates', [CertificateController::class, 'myCertificates']);
+    Route::post('/certificates/generate', [CertificateController::class, 'generate']);
+    Route::post('/certificates/bulk-generate', [CertificateController::class, 'bulkGenerate']);
     Route::get('/certificates/{certificate}', [CertificateController::class, 'show']);
     Route::get('/certificates/{certificate}/download', [CertificateController::class, 'download']);
+    Route::get('/certificates/{certificate}/preview', [CertificateController::class, 'preview']);
+    Route::post('/certificates/{certificate}/regenerate', [CertificateController::class, 'regenerate']);
+    Route::get('/certificates/{certificate}/share', [CertificateController::class, 'share']);
+    Route::post('/certificates/{certificate}/revoke', [CertificateController::class, 'revoke']);
+    Route::post('/certificates/{certificate}/reinstate', [CertificateController::class, 'reinstate']);
     Route::delete('/certificates/{certificate}', [CertificateController::class, 'destroy']);
-    Route::get('/my-certificates', [CertificateController::class, 'myCertificates']);
+
+    // ─── Certificate Templates ───────────────────────────────────
+
+    Route::get('/certificate-templates', [CertificateController::class, 'templates']);
+    Route::post('/certificate-templates', [CertificateController::class, 'storeTemplate']);
+    Route::put('/certificate-templates/{template}', [CertificateController::class, 'updateTemplate']);
 
     // ─── Reviews ─────────────────────────────────────────────────
 

@@ -11,47 +11,60 @@ class Certificate extends Model
 {
     use HasFactory, SoftDeletes;
 
+    // ──────────────────────────────────────────────
+    // Constants
+    // ──────────────────────────────────────────────
+
+    const TEMPLATE_MODERN  = 'modern';
+    const TEMPLATE_CLASSIC = 'classic';
+    const TEMPLATE_MINIMAL = 'minimal';
+
+    const TEMPLATES = [
+        self::TEMPLATE_MODERN,
+        self::TEMPLATE_CLASSIC,
+        self::TEMPLATE_MINIMAL,
+    ];
+
     protected $fillable = [
         'user_id',
         'course_id',
         'certificate_number',
         'title',
         'template',
+        'custom_background',
+        'logo_path',
+        'primary_color',
         'instructor_name',
-        'instructor_signature_path',
-        'course_title',
-        'course_level',
-        'course_duration_hours',
-        'student_name',
-        'final_score',
-        'completion_days',
-        'total_lessons_completed',
-        'verification_hash',
+        'instructor_signature',
+        'organization_signature',
+        'final_grade',
+        'total_hours',
+        'skill_level',
         'qr_code_path',
+        'verification_hash',
+        'verification_data',
         'share_token',
-        'linkedin_share_url',
-        'public_image_path',
+        'linkedin_badge_url',
+        'share_metadata',
         'pdf_path',
         'is_revoked',
         'revoked_at',
         'revocation_reason',
+        'revoked_by',
         'issued_at',
         'expires_at',
-        'metadata',
     ];
 
     protected function casts(): array
     {
         return [
-            'final_score'       => 'decimal:2',
-            'completion_days'   => 'integer',
-            'total_lessons_completed' => 'integer',
-            'course_duration_hours'   => 'integer',
+            'final_grade'       => 'decimal:2',
+            'total_hours'       => 'integer',
+            'share_metadata'    => 'array',
             'is_revoked'        => 'boolean',
             'issued_at'         => 'datetime',
             'expires_at'        => 'datetime',
             'revoked_at'        => 'datetime',
-            'metadata'          => 'array',
         ];
     }
 
@@ -69,6 +82,17 @@ class Certificate extends Model
         return $this->belongsTo(Course::class);
     }
 
+    public function revokedByUser()
+    {
+        return $this->belongsTo(User::class, 'revoked_by');
+    }
+
+    public function enrollment()
+    {
+        return $this->hasOne(Enrollment::class, 'course_id', 'course_id')
+            ->where('user_id', $this->user_id);
+    }
+
     // ──────────────────────────────────────────────
     // Scopes
     // ──────────────────────────────────────────────
@@ -82,14 +106,14 @@ class Certificate extends Model
             });
     }
 
-    public function scopeExpired($query)
-    {
-        return $query->where('expires_at', '<', now());
-    }
-
     public function scopeRevoked($query)
     {
         return $query->where('is_revoked', true);
+    }
+
+    public function scopeExpired($query)
+    {
+        return $query->where('expires_at', '<', now());
     }
 
     public function scopeForUser($query, int $userId)
@@ -97,12 +121,17 @@ class Certificate extends Model
         return $query->where('user_id', $userId);
     }
 
+    public function scopeForCourse($query, int $courseId)
+    {
+        return $query->where('course_id', $courseId);
+    }
+
     public function scopeRecent($query, $days = 30)
     {
         return $query->where('issued_at', '>=', now()->subDays($days));
     }
 
-    public function scopeForTemplate($query, string $template)
+    public function scopeWithTemplate($query, string $template)
     {
         return $query->where('template', $template);
     }
@@ -113,10 +142,7 @@ class Certificate extends Model
 
     public function getIsValidAttribute(): bool
     {
-        if ($this->is_revoked) {
-            return false;
-        }
-
+        if ($this->is_revoked) return false;
         return is_null($this->expires_at) || $this->expires_at->isFuture();
     }
 
@@ -137,7 +163,9 @@ class Certificate extends Model
 
     public function getPublicShareUrlAttribute(): string
     {
-        return url("/certificates/share/{$this->share_token}");
+        return $this->share_token
+            ? url("/certificates/share/{$this->share_token}")
+            : $this->verification_url;
     }
 
     public function getPdfUrlAttribute(): ?string
@@ -150,34 +178,65 @@ class Certificate extends Model
         return $this->qr_code_path ? asset('storage/' . $this->qr_code_path) : null;
     }
 
-    public function getLinkedinAddUrlAttribute(): string
+    public function getLinkedInShareUrlAttribute(): string
     {
         $params = http_build_query([
-            'name'             => $this->title,
-            'organizationName' => config('app.name', 'LMS'),
-            'issueYear'        => $this->issued_at?->year,
-            'issueMonth'       => $this->issued_at?->month,
-            'certUrl'          => $this->verification_url,
-            'certId'           => $this->certificate_number,
+            'name'           => $this->title,
+            'organizationId' => config('app.linkedin_org_id', ''),
+            'issueYear'      => $this->issued_at?->year,
+            'issueMonth'     => $this->issued_at?->month,
+            'certUrl'        => $this->public_share_url,
+            'certId'         => $this->certificate_number,
         ]);
 
         return "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&{$params}";
     }
 
-    public function getStatusAttribute(): string
+    public function getFormattedGradeAttribute(): ?string
     {
-        if ($this->is_revoked) return 'revoked';
-        if ($this->is_expired) return 'expired';
-        return 'valid';
+        if (is_null($this->final_grade)) return null;
+
+        $grade = $this->final_grade;
+        $letter = match (true) {
+            $grade >= 93 => 'A',
+            $grade >= 90 => 'A-',
+            $grade >= 87 => 'B+',
+            $grade >= 83 => 'B',
+            $grade >= 80 => 'B-',
+            $grade >= 77 => 'C+',
+            $grade >= 73 => 'C',
+            $grade >= 70 => 'C-',
+            $grade >= 67 => 'D+',
+            $grade >= 60 => 'D',
+            default      => 'F',
+        };
+
+        return "{$letter} ({$grade}%)";
     }
 
-    public function getStatusBadgeAttribute(): array
+    public function getSkillLevelLabelAttribute(): string
     {
-        return match ($this->status) {
-            'valid'   => ['label' => 'Valid', 'color' => '#10b981', 'icon' => '✅'],
-            'expired' => ['label' => 'Expired', 'color' => '#f59e0b', 'icon' => '⏰'],
-            'revoked' => ['label' => 'Revoked', 'color' => '#ef4444', 'icon' => '🚫'],
+        return match ($this->skill_level) {
+            'beginner'     => 'Beginner',
+            'intermediate' => 'Intermediate',
+            'advanced'     => 'Advanced',
+            'expert'       => 'Expert',
+            default        => ucfirst($this->skill_level ?? 'N/A'),
         };
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        if ($this->is_revoked) return 'Revoked';
+        if ($this->is_expired) return 'Expired';
+        return 'Valid';
+    }
+
+    public function getStatusColorAttribute(): string
+    {
+        if ($this->is_revoked) return '#ef4444';  // red
+        if ($this->is_expired) return '#f59e0b';  // amber
+        return '#10b981';                           // green
     }
 
     // ──────────────────────────────────────────────
@@ -187,12 +246,13 @@ class Certificate extends Model
     /**
      * Revoke this certificate.
      */
-    public function revoke(string $reason = null): self
+    public function revoke(string $reason, ?int $revokedBy = null): self
     {
         $this->update([
             'is_revoked'        => true,
             'revoked_at'        => now(),
             'revocation_reason' => $reason,
+            'revoked_by'        => $revokedBy,
         ]);
 
         return $this;
@@ -207,9 +267,25 @@ class Certificate extends Model
             'is_revoked'        => false,
             'revoked_at'        => null,
             'revocation_reason' => null,
+            'revoked_by'        => null,
         ]);
 
         return $this;
+    }
+
+    /**
+     * Generate verification hash.
+     */
+    public function generateVerificationHash(): string
+    {
+        $data = json_encode([
+            'certificate_number' => $this->certificate_number,
+            'user_id'            => $this->user_id,
+            'course_id'          => $this->course_id,
+            'issued_at'          => $this->issued_at?->toISOString(),
+        ]);
+
+        return hash('sha256', $data . config('app.key'));
     }
 
     // ──────────────────────────────────────────────
@@ -228,14 +304,26 @@ class Certificate extends Model
             }
 
             if (empty($certificate->share_token)) {
-                $certificate->share_token = Str::random(32);
+                $certificate->share_token = Str::random(48);
             }
 
-            if (empty($certificate->verification_hash)) {
-                $certificate->verification_hash = hash('sha256',
-                    $certificate->certificate_number . $certificate->user_id . $certificate->course_id . now()->timestamp
-                );
+            if (empty($certificate->template)) {
+                $certificate->template = self::TEMPLATE_MODERN;
             }
+        });
+
+        static::created(function (Certificate $certificate) {
+            // Generate verification hash after creation (needs ID)
+            $certificate->update([
+                'verification_hash' => $certificate->generateVerificationHash(),
+                'verification_data' => json_encode([
+                    'id'                 => $certificate->id,
+                    'certificate_number' => $certificate->certificate_number,
+                    'student'            => $certificate->user?->name,
+                    'course'             => $certificate->course?->title,
+                    'issued_at'          => $certificate->issued_at?->toISOString(),
+                ]),
+            ]);
         });
     }
 }
